@@ -1,10 +1,10 @@
 const { Client, GatewayIntentBits, Events } = require('discord.js');
-const { 
-    joinVoiceChannel, 
-    createAudioPlayer, 
-    createAudioResource, 
-    AudioPlayerStatus, 
-    VoiceConnectionStatus, 
+const {
+    joinVoiceChannel,
+    createAudioPlayer,
+    createAudioResource,
+    AudioPlayerStatus,
+    VoiceConnectionStatus,
     entersState,
     StreamType
 } = require('@discordjs/voice');
@@ -21,7 +21,7 @@ class BotManager {
         this.tokens = this.loadTokens();
         this.audioDir = path.join(__dirname, 'uploads');
         this.dataDir = path.join(__dirname, 'data');
-        
+
         // MASTER PLAYER: One engine for the whole fleet
         this.masterPlayer = createAudioPlayer();
         this.centralFFmpeg = null;
@@ -92,7 +92,7 @@ class BotManager {
                 client.once(Events.ClientReady, () => {
                     console.log(`[Bot ${botId}] ONLINE`);
                 });
-                await new Promise(r => setTimeout(r, 5000)); 
+                await new Promise(r => setTimeout(r, 5000));
             } catch (err) {
                 console.error(`[Bot ${botId}] Login Failed`);
             }
@@ -135,8 +135,8 @@ class BotManager {
                 });
                 bot.connection.subscribe(this.masterPlayer);
                 this.broadcastStatus();
-                await new Promise(r => setTimeout(r, 2000)); 
-            } catch (err) {}
+                await new Promise(r => setTimeout(r, 2000));
+            } catch (err) { }
         }
     }
 
@@ -175,7 +175,7 @@ class BotManager {
         const filterStr = this.getFFmpegFilter();
         const args = []; // Removed -re for better buffering on slow CPUs
         if (startTime > 0) args.push('-ss', startTime.toString());
-        
+
         // Using RAW s16le - 100% reliable format for Discord.js
         args.push(
             '-i', filePath,
@@ -185,20 +185,20 @@ class BotManager {
             '-threads', '1',
             'pipe:1'
         );
-        
+
         if (filterStr) args.splice(args.indexOf(filePath) + 1, 0, '-af', filterStr);
 
         this.centralFFmpeg = spawn('ffmpeg', args);
-        
+
         // HUGE 2MB Smooth-Ride Buffer
         const smoothBuffer = new PassThrough({ highWaterMark: 1024 * 1024 * 2 });
         this.centralFFmpeg.stdout.pipe(smoothBuffer);
 
-        const resource = createAudioResource(smoothBuffer, { 
+        const resource = createAudioResource(smoothBuffer, {
             inputType: StreamType.Raw,
             inlineVolume: false
         });
-        
+
         this.masterPlayer.play(resource);
 
         console.log(`[System] Reliable Playback started: ${audioFileName}`);

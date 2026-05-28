@@ -2,11 +2,26 @@
   "name": "discord-audio-dashboard",
   "version": "2.1.0",
   "description": "Premium Web Dashboard for Multi-Bot Discord Audio Management with Auth",
+  "author": "Dark Empire",
   "main": "electron-main.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "app": "electron ."
+    "app": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "electronVersion": "30.0.0",
+    "appId": "com.darkempire.bots",
+    "productName": "Dark Empire Bots",
+    "copyright": "Copyright © 2026 Dark Empire",
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "electron-main.js",
+      "public/**/*"
+    ]
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
@@ -23,6 +38,7 @@
   },
   "devDependencies": {
     "electron": "^42.0.0",
+    "electron-builder": "^26.8.1",
     "nodemon": "^3.1.0"
   }
 }

@@ -24,7 +24,7 @@ const tokens = [
 ];
 
 const BOT_NUM = botIndex + 1;
-const token   = tokens[botIndex];
+const token = tokens[botIndex];
 const audioFile = path.join(__dirname, `new${BOT_NUM}.mp3`);
 const audioExists = existsSync(audioFile);
 const LOGIN_TIMEOUT_MS = Number(process.env.BOT_LOGIN_TIMEOUT_MS || 90000);
@@ -34,21 +34,21 @@ if (!audioExists) console.warn(`[Bot${BOT_NUM}] Audio file missing: ${audioFile}
 
 // ─── EQ Presets (FFmpeg filter chains) ───────────────────────────────────────
 const EQ_PRESETS = {
-  flat:    '',                                                             // no filter
-  bass:    'equalizer=f=60:width_type=o:width=2:g=8,equalizer=f=250:width_type=o:width=2:g=3',
-  treble:  'equalizer=f=8000:width_type=o:width=2:g=6,equalizer=f=16000:width_type=o:width=2:g=4',
-  vocal:   'equalizer=f=1000:width_type=o:width=2:g=5,equalizer=f=3000:width_type=o:width=2:g=4',
-  pop:     'equalizer=f=60:width_type=o:width=2:g=5,equalizer=f=1000:width_type=o:width=2:g=2,equalizer=f=8000:width_type=o:width=2:g=4',
-  rock:    'equalizer=f=60:width_type=o:width=2:g=7,equalizer=f=500:width_type=o:width=2:g=-2,equalizer=f=8000:width_type=o:width=2:g=5',
-  loud:    'volume=2.0,equalizer=f=60:width_type=o:width=2:g=10',        // custom amp + boost
-  soft:    'volume=0.5,equalizer=f=8000:width_type=o:width=2:g=2'
+  flat: '',                                                             // no filter
+  bass: 'equalizer=f=60:width_type=o:width=2:g=8,equalizer=f=250:width_type=o:width=2:g=3',
+  treble: 'equalizer=f=8000:width_type=o:width=2:g=6,equalizer=f=16000:width_type=o:width=2:g=4',
+  vocal: 'equalizer=f=1000:width_type=o:width=2:g=5,equalizer=f=3000:width_type=o:width=2:g=4',
+  pop: 'equalizer=f=60:width_type=o:width=2:g=5,equalizer=f=1000:width_type=o:width=2:g=2,equalizer=f=8000:width_type=o:width=2:g=4',
+  rock: 'equalizer=f=60:width_type=o:width=2:g=7,equalizer=f=500:width_type=o:width=2:g=-2,equalizer=f=8000:width_type=o:width=2:g=5',
+  loud: 'volume=2.0,equalizer=f=60:width_type=o:width=2:g=10',        // custom amp + boost
+  soft: 'volume=0.5,equalizer=f=8000:width_type=o:width=2:g=2'
 };
 
 // ─── State ───────────────────────────────────────────────────────────────────
-const connections  = new Map();   // guildId -> { conn, player, volume, eq, looping }
+const connections = new Map();   // guildId -> { conn, player, volume, eq, looping }
 const commandCooldown = new Map();
-const COOLDOWN_MS  = 300;
-let   readyFlag    = false;
+const COOLDOWN_MS = 300;
+let readyFlag = false;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function state(guildId) { return connections.get(guildId); }
@@ -58,10 +58,10 @@ function reply(message, text, color = 0x5865F2) {
     .setColor(color)
     .setDescription(text)
     .setFooter({ text: `Bot ${BOT_NUM}` });
-  return message.reply({ embeds: [embed] }).catch(() => message.reply(text).catch(() => {}));
+  return message.reply({ embeds: [embed] }).catch(() => message.reply(text).catch(() => { }));
 }
-function ok(msg, t)   { return reply(msg, `✅  ${t}`, 0x57F287); }
-function err(msg, t)  { return reply(msg, `❌  ${t}`, 0xED4245); }
+function ok(msg, t) { return reply(msg, `✅  ${t}`, 0x57F287); }
+function err(msg, t) { return reply(msg, `❌  ${t}`, 0xED4245); }
 function info(msg, t) { return reply(msg, `ℹ️  ${t}`, 0x5865F2); }
 
 function isConnectionAlive(guildId) {
@@ -75,7 +75,7 @@ function isConnectionAlive(guildId) {
 function buildResource(guildId) {
   const s = state(guildId);
   const volume = (s?.volume ?? 100) / 100;          // 0.0 – 2.0
-  const eq     = s?.eq ?? 'flat';
+  const eq = s?.eq ?? 'flat';
   const filter = EQ_PRESETS[eq] || '';
 
   // Build FFmpeg filter: volume first, then EQ if needed
@@ -110,11 +110,11 @@ function startPlayback(guildId) {
   if (!audioExists) return;
 
   // Stop previous
-  try { if (s.player) s.player.stop(true); } catch {}
-  try { if (s._ffmpeg) s._ffmpeg.kill(); }   catch {}
+  try { if (s.player) s.player.stop(true); } catch { }
+  try { if (s._ffmpeg) s._ffmpeg.kill(); } catch { }
 
-  const player   = createAudioPlayer();
-  s.player       = player;
+  const player = createAudioPlayer();
+  s.player = player;
   s.conn.subscribe(player);
 
   function playOnce() {
@@ -147,9 +147,9 @@ async function connectVoice(voiceChannel, message) {
   const guildId = voiceChannel.guild.id;
 
   const conn = joinVoiceChannel({
-    channelId:       voiceChannel.id,
-    guildId:         guildId,
-    adapterCreator:  voiceChannel.guild.voiceAdapterCreator,
+    channelId: voiceChannel.id,
+    guildId: guildId,
+    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
     selfMute: false,
     selfDeaf: false
   });
@@ -183,9 +183,9 @@ async function connectVoice(voiceChannel, message) {
 
   connections.set(guildId, {
     conn,
-    player:  null,
-    volume:  100,         // default 100%
-    eq:      'flat',      // default flat
+    player: null,
+    volume: 100,         // default 100%
+    eq: 'flat',      // default flat
     looping: true,        // loop by default
     _ffmpeg: null
   });
@@ -214,7 +214,7 @@ client.on('ready', () => {
   if (!readyFlag) {
     readyFlag = true;
     console.log(`[Bot${BOT_NUM}] Ready as ${client.user.tag}`);
-    client.user.setActivity(`🎵 pk vaa | Bot ${BOT_NUM}`, { type: 2 }).catch(() => {});
+    client.user.setActivity(`🎵 pk vaa | Bot ${BOT_NUM}`, { type: 2 }).catch(() => { });
   }
 });
 
@@ -232,14 +232,14 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot || !message.guild) return;
 
   // Rate limit
-  const ck  = `${message.guild.id}-${message.author.id}`;
+  const ck = `${message.guild.id}-${message.author.id}`;
   const now = Date.now();
   if (commandCooldown.has(ck) && now < commandCooldown.get(ck) + COOLDOWN_MS) return;
   commandCooldown.set(ck, now);
 
-  const guildId     = message.guild.id;
+  const guildId = message.guild.id;
   const voiceChannel = message.member?.voice?.channel;
-  const raw          = message.content.trim();
+  const raw = message.content.trim();
   const [cmd, ...args] = raw.split(/\s+/);
 
   try {
@@ -247,41 +247,41 @@ client.on('messageCreate', async (message) => {
     // ── !join10 ──────────────────────────────────────────────────────────────
     if (cmd === '!join10') {
       if (isConnectionAlive(guildId)) return info(message, `Bot ${BOT_NUM} already in a channel!`);
-      if (!voiceChannel)             return err(message, 'Join a voice channel first!');
+      if (!voiceChannel) return err(message, 'Join a voice channel first!');
       const conn = await connectVoice(voiceChannel, message);
       if (conn) await ok(message, `Bot ${BOT_NUM} joined **${voiceChannel.name}**`);
 
-    // ── !st10 — start / resume ───────────────────────────────────────────────
+      // ── !st10 — start / resume ───────────────────────────────────────────────
     } else if (cmd === '!st10') {
       if (!isConnectionAlive(guildId)) return err(message, 'Use `!join10` first!');
-      if (!audioExists)               return err(message, `Audio file missing for Bot ${BOT_NUM}.`);
+      if (!audioExists) return err(message, `Audio file missing for Bot ${BOT_NUM}.`);
       state(guildId).looping = true;
       startPlayback(guildId);
       await ok(message, `▶️  Bot ${BOT_NUM} playing (loop ON)`);
 
-    // ── !sp10 — stop ─────────────────────────────────────────────────────────
+      // ── !sp10 — stop ─────────────────────────────────────────────────────────
     } else if (cmd === '!sp10') {
       const s = state(guildId);
       if (s) {
         s.looping = false;
-        try { s.player?.stop(true); } catch {}
-        try { s._ffmpeg?.kill(); }    catch {}
+        try { s.player?.stop(true); } catch { }
+        try { s._ffmpeg?.kill(); } catch { }
       }
       await ok(message, `⏹️  Bot ${BOT_NUM} stopped`);
 
-    // ── !ds10 — disconnect ───────────────────────────────────────────────────
+      // ── !ds10 — disconnect ───────────────────────────────────────────────────
     } else if (cmd === '!ds10') {
       const s = state(guildId);
       if (s) {
         s.looping = false;
-        try { s.player?.stop(true); } catch {}
-        try { s._ffmpeg?.kill(); }    catch {}
-        try { s.conn.destroy(); }     catch {}
+        try { s.player?.stop(true); } catch { }
+        try { s._ffmpeg?.kill(); } catch { }
+        try { s.conn.destroy(); } catch { }
         connections.delete(guildId);
       }
       await ok(message, `👋  Bot ${BOT_NUM} disconnected`);
 
-    // ── !vol10 <0-200> — Custom Amplifier ────────────────────────────────────
+      // ── !vol10 <0-200> — Custom Amplifier ────────────────────────────────────
     } else if (cmd === '!vol10') {
       const vol = parseInt(args[0]);
       if (isNaN(vol) || vol < 0 || vol > 200)
@@ -295,7 +295,7 @@ client.on('messageCreate', async (message) => {
       }
       await ok(message, `🔊  Amp set to **${vol}%** for Bot ${BOT_NUM}`);
 
-    // ── !eq10 <preset> — Custom Equalizer ────────────────────────────────────
+      // ── !eq10 <preset> — Custom Equalizer ────────────────────────────────────
     } else if (cmd === '!eq10') {
       const preset = (args[0] || '').toLowerCase();
       if (!EQ_PRESETS.hasOwnProperty(preset)) {
@@ -310,14 +310,14 @@ client.on('messageCreate', async (message) => {
       }
       await ok(message, `🎛️  EQ set to **${preset}** for Bot ${BOT_NUM}`);
 
-    // ── !loop10 — toggle loop ────────────────────────────────────────────────
+      // ── !loop10 — toggle loop ────────────────────────────────────────────────
     } else if (cmd === '!loop10') {
       const s = state(guildId);
       if (!s) return err(message, 'Use `!join10` first!');
       s.looping = !s.looping;
       await ok(message, `🔁  Loop **${s.looping ? 'ON' : 'OFF'}** for Bot ${BOT_NUM}`);
 
-    // ── !eqlist10 — show all EQ presets ──────────────────────────────────────
+      // ── !eqlist10 — show all EQ presets ──────────────────────────────────────
     } else if (cmd === '!eqlist10') {
       const embed = new EmbedBuilder()
         .setColor(0x5865F2)
@@ -328,9 +328,9 @@ client.on('messageCreate', async (message) => {
           ).join('\n')
         )
         .addFields({ name: 'Usage', value: '`!eq10 <preset>`  e.g. `!eq10 bass`' });
-      await message.reply({ embeds: [embed] }).catch(() => {});
+      await message.reply({ embeds: [embed] }).catch(() => { });
 
-    // ── !status10 — show current settings ────────────────────────────────────
+      // ── !status10 — show current settings ────────────────────────────────────
     } else if (cmd === '!status10') {
       const s = state(guildId);
       if (!s) return info(message, `Bot ${BOT_NUM} is not in a voice channel.`);
@@ -339,14 +339,14 @@ client.on('messageCreate', async (message) => {
         .setColor(0x57F287)
         .setTitle(`📊  Bot ${BOT_NUM} Status`)
         .addFields(
-          { name: '🔊 Amp',     value: `${s.volume}%`,      inline: true },
-          { name: '🎛️ EQ',      value: s.eq,                inline: true },
-          { name: '🔁 Loop',    value: s.looping ? 'ON' : 'OFF', inline: true },
-          { name: '▶️ Player',  value: playerStatus,         inline: true }
+          { name: '🔊 Amp', value: `${s.volume}%`, inline: true },
+          { name: '🎛️ EQ', value: s.eq, inline: true },
+          { name: '🔁 Loop', value: s.looping ? 'ON' : 'OFF', inline: true },
+          { name: '▶️ Player', value: playerStatus, inline: true }
         );
-      await message.reply({ embeds: [embed] }).catch(() => {});
+      await message.reply({ embeds: [embed] }).catch(() => { });
 
-    // ── Mod: !mute10 @user ───────────────────────────────────────────────────
+      // ── Mod: !mute10 @user ───────────────────────────────────────────────────
     } else if (cmd === '!mute10') {
       if (!message.member.permissions.has(PermissionFlagsBits.MuteMembers))
         return err(message, 'You need **Mute Members** permission.');
@@ -355,7 +355,7 @@ client.on('messageCreate', async (message) => {
       await target.voice.setMute(true, `Muted by Bot ${BOT_NUM} (${message.author.tag})`);
       await ok(message, `🔇  ${target.user.tag} muted`);
 
-    // ── Mod: !unmute10 @user ─────────────────────────────────────────────────
+      // ── Mod: !unmute10 @user ─────────────────────────────────────────────────
     } else if (cmd === '!unmute10') {
       if (!message.member.permissions.has(PermissionFlagsBits.MuteMembers))
         return err(message, 'You need **Mute Members** permission.');
@@ -364,7 +364,7 @@ client.on('messageCreate', async (message) => {
       await target.voice.setMute(false, `Unmuted by Bot ${BOT_NUM}`);
       await ok(message, `🔊  ${target.user.tag} unmuted`);
 
-    // ── Mod: !vkick10 @user (kick from voice) ────────────────────────────────
+      // ── Mod: !vkick10 @user (kick from voice) ────────────────────────────────
     } else if (cmd === '!vkick10') {
       if (!message.member.permissions.has(PermissionFlagsBits.MoveMembers))
         return err(message, 'You need **Move Members** permission.');
@@ -373,7 +373,7 @@ client.on('messageCreate', async (message) => {
       await target.voice.disconnect(`Voice-kicked by Bot ${BOT_NUM} (${message.author.tag})`);
       await ok(message, `🦵  ${target.user.tag} kicked from voice`);
 
-    // ── Mod: !deafen10 @user ─────────────────────────────────────────────────
+      // ── Mod: !deafen10 @user ─────────────────────────────────────────────────
     } else if (cmd === '!deafen10') {
       if (!message.member.permissions.has(PermissionFlagsBits.DeafenMembers))
         return err(message, 'You need **Deafen Members** permission.');
@@ -382,7 +382,7 @@ client.on('messageCreate', async (message) => {
       await target.voice.setDeaf(true, `Deafened by Bot ${BOT_NUM}`);
       await ok(message, `🔕  ${target.user.tag} deafened`);
 
-    // ── !help10 ───────────────────────────────────────────────────────────────
+      // ── !help10 ───────────────────────────────────────────────────────────────
     } else if (cmd === '!help10') {
       const embed = new EmbedBuilder()
         .setColor(0x5865F2)
@@ -425,12 +425,12 @@ client.on('messageCreate', async (message) => {
           }
         )
         .setFooter({ text: 'All commands work per-guild · Auto-loop enabled by default' });
-      await message.reply({ embeds: [embed] }).catch(() => {});
+      await message.reply({ embeds: [embed] }).catch(() => { });
     }
 
   } catch (e) {
     console.error(`[Bot${BOT_NUM}] Command error (${cmd}):`, e.message);
-    err(message, `Internal error: ${e.message}`).catch(() => {});
+    err(message, `Internal error: ${e.message}`).catch(() => { });
   }
 });
 
@@ -448,19 +448,19 @@ client.login(token)
 const shutdown = async () => {
   console.log(`[Bot${BOT_NUM}] Shutting down…`);
   for (const [, s] of connections) {
-    try { s.looping = false; s.player?.stop(true); } catch {}
-    try { s._ffmpeg?.kill(); }  catch {}
-    try { s.conn.destroy(); }   catch {}
+    try { s.looping = false; s.player?.stop(true); } catch { }
+    try { s._ffmpeg?.kill(); } catch { }
+    try { s.conn.destroy(); } catch { }
   }
   connections.clear();
-  try { await client.destroy(); } catch {}
+  try { await client.destroy(); } catch { }
   process.exit(0);
 };
 
-process.on('SIGINT',  shutdown);
+process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-process.on('SIGHUP',  shutdown);
+process.on('SIGHUP', shutdown);
 
 // ─── No-crash: catch all uncaught errors ─────────────────────────────────────
-process.on('uncaughtException',  (e) => console.error(`[Bot${BOT_NUM}] uncaughtException:`,  e.message));
+process.on('uncaughtException', (e) => console.error(`[Bot${BOT_NUM}] uncaughtException:`, e.message));
 process.on('unhandledRejection', (r) => console.error(`[Bot${BOT_NUM}] unhandledRejection:`, r));
