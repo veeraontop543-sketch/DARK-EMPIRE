@@ -17,7 +17,7 @@ function createWindow() {
     });
 
     // UPDATED to your new working Render link
-    mainWindow.loadURL('https://audio-app-7bff.onrender.com');
+    mainWindow.loadURL('https://dark-empire-yb3w.onrender.com');
 
     mainWindow.on('closed', () => {
         mainWindow = null;

@@ -111,33 +111,87 @@ class BotManager {
             id: b.id,
             tag: b.client.user?.tag || 'Connecting...',
             isOnline: b.isOnline,
-            isJoined: !!b.connection && b.connection.state.status !== VoiceConnectionStatus.Destroyed,
+            isJoined: !!b.connection && b.connection.state.status === VoiceConnectionStatus.Ready,
             status: this.masterPlayer.state.status
         }));
         this.io.emit('botStatus', { bots: stats, config: this.globalConfig });
     }
 
     async joinVC(input) {
-        const channelId = input.replace(/\D/g, '');
-        this.globalConfig.currentVC = channelId;
-        this.saveConfig();
+        const channelId = typeof input === 'string' ? input.replace(/\D/g, '') : '';
+        if (!/^\d{17,20}$/.test(channelId)) {
+            return {
+                success: false,
+                joined: 0,
+                total: this.bots.length,
+                failures: [],
+                message: 'Enter a valid voice channel ID.'
+            };
+        }
+
+        const failures = [];
+        let joined = 0;
+
         for (const bot of this.bots) {
-            if (!bot.isOnline) continue;
+            if (!bot.isOnline || !bot.client.user) {
+                failures.push({ botId: bot.id + 1, reason: 'Bot is offline.' });
+                continue;
+            }
+
+            let connection;
             try {
                 const channel = await bot.client.channels.fetch(channelId);
-                if (bot.connection) bot.connection.destroy();
-                bot.connection = joinVoiceChannel({
+                if (!channel || !channel.isVoiceBased()) {
+                    throw new Error('Channel is unavailable or is not a voice channel.');
+                }
+
+                if (bot.connection) {
+                    bot.connection.destroy();
+                    bot.connection = null;
+                }
+
+                connection = joinVoiceChannel({
                     channelId: channel.id,
                     guildId: channel.guild.id,
                     adapterCreator: channel.guild.voiceAdapterCreator,
                     selfDeaf: true,
                     group: bot.client.user.id
                 });
-                bot.connection.subscribe(this.masterPlayer);
+                bot.connection = connection;
+                connection.on('stateChange', (_, newState) => {
+                    if (newState.status === VoiceConnectionStatus.Destroyed && bot.connection === connection) {
+                        bot.connection = null;
+                    }
+                    this.broadcastStatus();
+                });
+                connection.subscribe(this.masterPlayer);
+                await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
+                joined++;
+            } catch (err) {
+                if (connection) connection.destroy();
+                if (bot.connection === connection) bot.connection = null;
+                failures.push({ botId: bot.id + 1, reason: err.message });
+            } finally {
                 this.broadcastStatus();
+            }
+
+            if (bot !== this.bots[this.bots.length - 1]) {
                 await new Promise(r => setTimeout(r, 2000));
-            } catch (err) { }
+            }
         }
+
+        this.globalConfig.currentVC = joined > 0 ? channelId : null;
+        this.saveConfig();
+
+        return {
+            success: this.bots.length > 0 && joined === this.bots.length,
+            joined,
+            total: this.bots.length,
+            failures,
+            message: this.bots.length === 0
+                ? 'No bots are configured.'
+                : `${joined} of ${this.bots.length} bots connected.`
+        };
     }
 
     async disconnectAll() {

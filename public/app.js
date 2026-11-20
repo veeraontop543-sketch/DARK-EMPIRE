@@ -127,7 +127,24 @@ document.getElementById('join-btn').addEventListener('click', () => {
     const vcId = document.getElementById('vc-input').value.trim();
     if (vcId) {
         socket.emit('joinVC', vcId);
-        showToast(`Ordering bots to join ${vcId}...`);
+        showToast('Connecting bots to the voice channel...');
+    } else {
+        showToast('Enter a voice channel ID first.');
+    }
+});
+
+socket.on('joinResult', (result) => {
+    showToast(result.message);
+
+    for (const failure of result.failures || []) {
+        const entry = document.createElement('div');
+        entry.className = 'error';
+        entry.textContent = `[Voice join] Bot ${failure.botId}: ${failure.reason}`;
+        logConsole.appendChild(entry);
+    }
+
+    if (result.failures && result.failures.length) {
+        logConsole.scrollTop = logConsole.scrollHeight;
     }
 });
 

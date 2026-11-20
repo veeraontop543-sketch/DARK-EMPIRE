@@ -153,7 +153,20 @@ io.on('connection', (socket) => {
     const user = socket.request.session.user;
     if (!user) return socket.disconnect();
     botManager.broadcastStatus();
-    socket.on('joinVC', (id) => botManager.joinVC(id));
+    socket.on('joinVC', async (id) => {
+        try {
+            socket.emit('joinResult', await botManager.joinVC(id));
+        } catch (err) {
+            console.error('[System] Voice channel join failed:', err);
+            socket.emit('joinResult', {
+                success: false,
+                joined: 0,
+                total: 0,
+                failures: [],
+                message: 'Could not process the voice channel request. Check the server logs.'
+            });
+        }
+    });
     socket.on('disconnectAll', () => botManager.disconnectAll());
     socket.on('play', (file) => botManager.playAll(file));
     socket.on('seek', (seconds) => botManager.seek(seconds));
