@@ -188,7 +188,7 @@ class BotManager {
             }
 
             if (index < onlineBots.length - 1) {
-                await new Promise(r => setTimeout(r, 1500));
+                await new Promise(r => setTimeout(r, 15));
             }
         }
 
