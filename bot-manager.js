@@ -131,13 +131,17 @@ class BotManager {
 
         const failures = [];
         let joined = 0;
+        const readinessChecks = [];
+        const onlineBots = this.bots.filter(bot => bot.isOnline && bot.client.user);
 
         for (const bot of this.bots) {
             if (!bot.isOnline || !bot.client.user) {
                 failures.push({ botId: bot.id + 1, reason: 'Bot is offline.' });
-                continue;
             }
+        }
 
+        for (let index = 0; index < onlineBots.length; index++) {
+            const bot = onlineBots[index];
             let connection;
             try {
                 const channel = await bot.client.channels.fetch(channelId);
@@ -165,8 +169,16 @@ class BotManager {
                     this.broadcastStatus();
                 });
                 connection.subscribe(this.masterPlayer);
-                await entersState(connection, VoiceConnectionStatus.Ready, 20_000);
-                joined++;
+
+                readinessChecks.push(
+                    entersState(connection, VoiceConnectionStatus.Ready, 20_000)
+                        .then(() => { joined++; })
+                        .catch(err => {
+                            connection.destroy();
+                            if (bot.connection === connection) bot.connection = null;
+                            failures.push({ botId: bot.id + 1, reason: err.message });
+                        })
+                );
             } catch (err) {
                 if (connection) connection.destroy();
                 if (bot.connection === connection) bot.connection = null;
@@ -175,10 +187,12 @@ class BotManager {
                 this.broadcastStatus();
             }
 
-            if (bot !== this.bots[this.bots.length - 1]) {
-                await new Promise(r => setTimeout(r, 2000));
+            if (index < onlineBots.length - 1) {
+                await new Promise(r => setTimeout(r, 1500));
             }
         }
+
+        await Promise.all(readinessChecks);
 
         this.globalConfig.currentVC = joined > 0 ? channelId : null;
         this.saveConfig();
